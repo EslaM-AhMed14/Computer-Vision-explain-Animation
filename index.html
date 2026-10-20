@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Morphology, step by step</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Atkinson+Hyperlegible+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #EBEFF3;
+  --surface: #FFFFFF;
+  --ink: #172433;
+  --muted: #566577;
+  --line: #C9D2DC;
+  --accent: #0E6A80;
+  --accent-ink: #FFFFFF;
+  --window: #E9A512;
+  --remove: #D2463C;
+  --add: #1F9254;
+  --px-on: #F6F7F8;
+  --px-off: #1D232A;
+  --px-grid: #8996A4;
+  --unk-a: #B9C3CD;
+  --unk-b: #A9B4BF;
+  --good: #1F9254;
+  --bad: #D2463C;
+  --font: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --cell: 24px;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10151B;
+    --surface: #18202A;
+    --ink: #E3E9EF;
+    --muted: #93A2B2;
+    --line: #2C3946;
+    --accent: #4CB3CA;
+    --accent-ink: #0B1A20;
+    --px-off: #05070A;
+    --px-grid: #5A6774;
+    --unk-a: #3A4652;
+    --unk-b: #323D48;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10151B;
+  --surface: #18202A;
+  --ink: #E3E9EF;
+  --muted: #93A2B2;
+  --line: #2C3946;
+  --accent: #4CB3CA;
+  --accent-ink: #0B1A20;
+  --px-off: #05070A;
+  --px-grid: #5A6774;
+  --unk-a: #3A4652;
+  --unk-b: #323D48;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+}
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--window); outline-offset: 2px; }
+
+.page { max-width: 1400px; margin: 0 auto; padding: 20px 20px 48px; }
+
+/* ---------- header ---------- */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 32px; margin-bottom: 18px; }
+.top h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3.2vw, 2.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 14px;
+}
+.logo { display: grid; grid-template-columns: repeat(3, 9px); gap: 2px; flex: none; }
+.logo i { width: 9px; height: 9px; background: var(--px-off); }
+.logo i.on { background: var(--window); }
+.top p { margin: 0; color: var(--muted); max-width: 62ch; }
+
+/* ---------- operation picker ---------- */
+.ops { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ops button {
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.ops button:hover { border-color: var(--accent); }
+.ops button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rule {
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-left: 4px solid var(--accent);
+  max-width: 100ch;
+}
+.rule .f { font-family: var(--mono); font-weight: 600; color: var(--accent); margin-right: 10px; white-space: nowrap; }
+
+/* ---------- layout ---------- */
+.layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+.setup { display: grid; gap: 14px; }
+.block { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 16px; }
+.block h2, .watch h2 { font-size: 1.05rem; margin: 0 0 4px; }
+.hint { margin: 0 0 10px; color: var(--muted); font-size: 0.9rem; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.row label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.92rem; }
+.row input[type="number"] { width: 4.2em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); max-width: 100%; }
+.btn {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.btn input[type="file"] { display: none; }
+input[type="range"] { accent-color: var(--accent); }
+
+/* ---------- pixel grids ---------- */
+.pgrid { display: grid; gap: 1px; background: var(--px-grid); border: 1px solid var(--px-grid); width: max-content; }
+.cell {
+  width: var(--cell); height: var(--cell);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: calc(var(--cell) * 0.42); line-height: 1;
+  user-select: none;
+}
+.cell.on { background: var(--px-on); color: #5C6670; }
+.cell.off { background: var(--px-off); color: #7E8A96; }
+.cell.unk { background: repeating-linear-gradient(45deg, var(--unk-a) 0 3px, var(--unk-b) 3px 6px); }
+.cell.pad { background: var(--paper); color: var(--muted); opacity: 0.8; outline: 1px dashed var(--px-grid); outline-offset: -3px; }
+.cell.pad.p1 { background: color-mix(in srgb, var(--px-on) 75%, var(--paper)); color: #5C6670; }
+.cell.pad.p0 { background: color-mix(in srgb, var(--px-off) 70%, var(--paper)); color: #9AA6B2; }
+.cell.rm { background: var(--remove); color: #fff; }
+.cell.add { background: var(--add); color: #fff; }
+.cell.chg { box-shadow: inset 0 0 0 3px var(--window); }
+.editor .pgrid { cursor: crosshair; touch-action: none; }
+
+/* ---------- kernel editor ---------- */
+.kgrid { display: grid; gap: 3px; width: max-content; }
+.kcell {
+  width: 38px; height: 38px; border-radius: 5px; border: 1.5px solid var(--line);
+  font-family: var(--mono); font-weight: 600; font-size: 1rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.kcell.k1 { background: var(--px-on); color: #1D232A; border-color: var(--px-grid); }
+.kcell.km { background: var(--px-off); color: #F6F7F8; border-color: var(--px-grid); }
+.kcell.k0 { background: var(--paper); color: var(--muted); border-style: dashed; }
+.kcell.center { box-shadow: inset 0 0 0 3px var(--window); }
+.kthumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.kthumbs .kgrid { gap: 1px; }
+.kthumbs .kcell { width: 15px; height: 15px; font-size: 0; border-radius: 2px; border-width: 1px; cursor: default; }
+.kthumbs .kcell.center { box-shadow: none; }
+.kthumbs .now { outline: 3px solid var(--window); outline-offset: 2px; }
+
+/* ---------- watch area ---------- */
+.watch { display: grid; gap: 14px; min-width: 0; }
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.panels { display: flex; flex-wrap: wrap; gap: 18px 22px; align-items: flex-start; }
+.panel { margin: 0; min-width: 0; width: min-content; max-width: 100%; }
+.panel figcaption { font-weight: 700; margin-bottom: 6px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.panel figcaption span { font-weight: 400; color: var(--muted); font-size: 0.88rem; }
+.panel.active figcaption { color: var(--accent); }
+.gwrap { position: relative; max-width: 100%; overflow-x: auto; padding: 4px; margin: -4px; }
+.gwrap .inner { position: relative; width: max-content; }
+.win {
+  position: absolute; pointer-events: none;
+  border: 3px solid var(--window); border-radius: 3px;
+  margin: -3px 0 0 -3px;
+  box-shadow: 0 0 0 9999px rgba(10, 16, 22, 0.14);
+  display: grid; gap: 1px;
+  transition: left var(--slide, 120ms) ease-out, top var(--slide, 120ms) ease-out;
+}
+.win b { display: block; }
+.win b.k1 { box-shadow: inset 0 0 0 2px rgba(233, 165, 18, 0.95); }
+.win b.km { box-shadow: inset 0 0 0 2px rgba(233, 165, 18, 0.95); background: repeating-linear-gradient(-45deg, transparent 0 3px, rgba(233,165,18,0.45) 3px 5px); }
+.cur { position: absolute; pointer-events: none; border: 3px solid var(--window); border-radius: 3px; margin: -3px 0 0 -3px; transition: left var(--slide, 120ms) ease-out, top var(--slide, 120ms) ease-out; }
+@media (prefers-reduced-motion: reduce) { .win, .cur { transition: none; } }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.85rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; display: inline-block; border: 1px solid var(--px-grid); }
+
+/* step detail */
+.detail { min-height: 132px; }
+.dhead { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 10px; }
+.dhead strong { font-size: 1.1rem; }
+.dhead span { color: var(--muted); }
+.dbody { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; }
+.dbody figure { margin: 0; text-align: center; }
+.dbody figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+.mini { display: grid; gap: 2px; width: max-content; margin: 0 auto; }
+.mini div {
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 600; border-radius: 4px; border: 2px solid transparent;
+}
+.mini .on { background: var(--px-on); color: #1D232A; border-color: var(--px-grid); }
+.mini .off { background: var(--px-off); color: #F6F7F8; border-color: var(--px-grid); }
+.mini .k0 { background: var(--paper); color: var(--muted); border: 2px dashed var(--line); }
+.mini .good { border-color: var(--good); box-shadow: inset 0 0 0 2px var(--good); }
+.mini .bad { border-color: var(--bad); box-shadow: inset 0 0 0 2px var(--bad); }
+.mini .ign { opacity: 0.3; }
+.mini .out { border-style: dashed !important; }
+.op-sym { font-size: 1.5rem; color: var(--muted); font-weight: 700; }
+.verdict { flex: 1 1 260px; margin: 0; max-width: 60ch; }
+.verdict .res { display: inline-block; padding: 1px 9px; border-radius: 999px; font-weight: 700; font-family: var(--mono); }
+.verdict .res.r1 { background: var(--px-on); color: #1D232A; border: 1px solid var(--px-grid); }
+.verdict .res.r0 { background: var(--px-off); color: #F6F7F8; }
+.err { color: var(--bad); font-weight: 700; }
+
+/* player */
+.player { display: grid; gap: 10px; }
+.pbtns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pbtns .btn { min-width: 44px; padding: 7px 12px; font-size: 1rem; }
+.pbtns .btn.play { min-width: 96px; }
+.count { font-family: var(--mono); color: var(--muted); margin-left: auto; }
+.scrub { width: 100%; }
+.prow { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 0.92rem; }
+.prow label { display: inline-flex; align-items: center; gap: 6px; }
+
+/* log */
+.log {
+  list-style: none; margin: 6px 0 0; padding: 0;
+  max-height: 320px; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px;
+  font-size: 0.9rem;
+}
+.log li { padding: 5px 12px; border-bottom: 1px solid var(--line); cursor: pointer; display: flex; gap: 12px; }
+.log li:last-child { border-bottom: 0; }
+.log li:hover { background: var(--paper); }
+.log li .n { font-family: var(--mono); color: var(--muted); min-width: 3.2em; text-align: right; }
+.log li.head { font-weight: 700; background: var(--paper); }
+.log li.now { background: var(--accent); color: var(--accent-ink); }
+.log li.now .n { color: inherit; }
+.log li.future { opacity: 0.5; }
+
+/* ---------- v2 additions ---------- */
+.cell.lost { box-shadow: inset 0 0 0 3px var(--remove); }
+.cell.gained { box-shadow: inset 0 0 0 3px var(--add); }
+.cell.q { background: var(--window); color: #1D232A; font-weight: 700; }
+.panel figcaption .f { font-family: var(--mono); font-weight: 600; color: var(--muted); font-size: 0.85rem; }
+.panel.active figcaption .f { color: var(--accent); }
+.panel.dim { opacity: 0.55; }
+
+.groupbar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 12px; }
+.groupbar strong { font-size: 1.05rem; }
+.groupbar span { color: var(--muted); font-size: 0.92rem; }
+
+.plan { margin: 6px 0 0; padding-left: 1.4em; }
+.plan li { margin: 3px 0; }
+.plan li.now { font-weight: 700; color: var(--accent); }
+.plan .f { font-family: var(--mono); font-size: 0.9em; color: var(--muted); }
+
+.quiz { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.quiz .btn { min-width: 52px; font-size: 1.05rem; font-weight: 700; padding: 6px 14px; }
+.fb { font-weight: 700; }
+.fb.ok { color: var(--good); }
+.fb.no { color: var(--bad); }
+.score { font-family: var(--mono); color: var(--muted); }
+
+/* process overview (thinning / thickening) */
+.overview { display: grid; gap: 10px; max-height: 420px; overflow: auto; padding-bottom: 4px; }
+.orow { display: flex; gap: 10px; align-items: flex-start; }
+.orow > b { min-width: 4.6em; font-size: 0.88rem; padding-top: 2px; }
+.othumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+.othumb { border: 2px solid transparent; border-radius: 6px; padding: 3px; background: var(--paper); cursor: pointer; display: grid; gap: 2px; justify-items: center; font-size: 0.75rem; color: var(--muted); }
+.othumb:hover { border-color: var(--line); }
+.othumb.now { border-color: var(--window); color: var(--ink); }
+.othumb canvas { image-rendering: pixelated; display: block; }
+.ohint { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <h1><span class="logo" aria-hidden="true"><i></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i></span>Morphology, step by step</h1>
+    <p>Draw or upload a small black-and-white image, set a kernel, pick an operation, and watch every part of it run one step at a time. Turn on practice to solve each pixel yourself.</p>
+  </header>
+
+  <nav class="ops" id="ops" role="tablist" aria-label="Operation"></nav>
+  <p class="rule" id="rule"></p>
+
+  <main class="layout">
+    <aside class="setup">
+      <section class="block">
+        <h2>Input image</h2>
+        <p class="hint">Click or drag on the grid to paint. White is the object (1), black is the background (0).</p>
+        <div class="editor"><div class="gwrap"><div class="inner" id="editor"></div></div></div>
+        <div class="row">
+          <label>Rows <input type="number" id="rows" min="3" max="30" value="10"></label>
+          <label>Cols <input type="number" id="cols" min="3" max="30" value="10"></label>
+        </div>
+        <div class="row">
+          <select id="preset" aria-label="Sample image">
+            <option value="">Sample image…</option>
+            <option value="square">Square</option>
+            <option value="noise">Shapes with noise and holes</option>
+            <option value="two">Two rectangles</option>
+            <option value="lshape">Thick L shape</option>
+            <option value="line">Thin line and a dot</option>
+            <option value="cross">Plus sign</option>
+            <option value="tiny">Tiny 6 × 6 (for solving by hand)</option>
+          </select>
+          <button class="btn" id="clear">Clear</button>
+          <button class="btn" id="invertGrid">Invert</button>
+        </div>
+        <div class="row">
+          <label class="btn">Upload image<input type="file" id="file" accept="image/*"></label>
+          <button class="btn primary" id="example">Load example for this operation</button>
+        </div>
+        <div id="imgopts" hidden>
+          <div class="row"><label>Size <input type="range" id="imgsize" min="6" max="30" value="16"> <span id="imgsizeV">16</span></label></div>
+          <div class="row"><label>Threshold <input type="range" id="thresh" min="1" max="254" value="128"> <span id="threshV">128</span></label></div>
+          <div class="row"><label><input type="checkbox" id="imginv"> Invert (use when the object is dark)</label></div>
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Kernel</h2>
+        <p class="hint" id="khint"></p>
+        <div id="kset" hidden>
+          <div class="row" style="margin-top:0">
+            <label><input type="radio" name="kset" value="standard" checked> Standard set of 8</label>
+            <label><input type="radio" name="kset" value="custom"> My kernel + its 3 rotations</label>
+          </div>
+          <div class="kthumbs" id="kthumbs"></div>
+        </div>
+        <div id="kcustom">
+          <div class="kgrid" id="keditor"></div>
+          <div class="row">
+            <label>Size
+              <select id="ksize"><option value="3">3 × 3</option><option value="5">5 × 5</option><option value="7">7 × 7</option></select>
+            </label>
+            <select id="kpreset" aria-label="Sample kernel"></select>
+          </div>
+        </div>
+        <div class="row" id="roundsRow" hidden>
+          <label>Rounds <input type="number" id="rounds" min="1" max="8" value="2"></label>
+        </div>
+        <div class="row" id="levelRow" hidden>
+          <label>Show each kernel
+            <select id="level">
+              <option value="kernel">in 2 steps (match, then apply)</option>
+              <option value="pixel">pixel by pixel</option>
+            </select>
+          </label>
+        </div>
+      </section>
+    </aside>
+
+    <section class="watch">
+      <div class="stage">
+        <div class="groupbar" id="groupbar"></div>
+        <div class="panels" id="panels"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="stage detail" id="detail" aria-live="polite"></div>
+
+      <div class="stage player">
+        <div class="pbtns">
+          <button class="btn" id="first" title="First step" aria-label="First step">⏮</button>
+          <button class="btn" id="prev" title="Previous step (←)" aria-label="Previous step">◀</button>
+          <button class="btn primary play" id="play">▶ Play</button>
+          <button class="btn" id="next" title="Next step (→)" aria-label="Next step">▶</button>
+          <button class="btn" id="last" title="Last step" aria-label="Last step">⏭</button>
+          <span class="count" id="count"></span>
+        </div>
+        <input type="range" class="scrub" id="scrub" min="0" max="0" value="0" aria-label="Step">
+        <div class="prow">
+          <label>Speed <input type="range" id="speed" min="0" max="100" value="55"></label>
+          <label><input type="checkbox" id="skip"> Skip empty steps</label>
+          <label><input type="checkbox" id="vals" checked> Show 0 / 1 values</label>
+          <label><input type="checkbox" id="practice"> Practice: I solve each pixel</label>
+          <span class="score" id="score"></span>
+        </div>
+      </div>
+
+      <div class="stage" id="overviewBox" hidden>
+        <h2>Whole process at a glance</h2>
+        <p class="ohint">The image after every kernel, round by round. Red pixels were removed by that kernel, green pixels were added. Click any image to jump to it.</p>
+        <div class="overview" id="overview"></div>
+      </div>
+
+      <div class="stage">
+        <h2>All steps</h2>
+        <p class="hint" style="margin:0">Click any step to jump to it.</p>
+        <ol class="log" id="log"></ol>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ================= helpers ================= */
+const $ = (s) => document.querySelector(s);
+const make = (R, C, v = 0) => Array.from({ length: R }, () => Array(C).fill(v));
+const clone = (g) => g.map((r) => r.slice());
+const at = (g, r, c) => (r < 0 || c < 0 || r >= g.length || c >= g[0].length) ? 0 : g[r][c];
+const rot90 = (k) => { const n = k.length; return k.map((row, i) => row.map((_, j) => k[n - 1 - j][i])); };
+const neg = (k) => k.map((r) => r.map((v) => (v === 0 ? 0 : -v)));
+const count1 = (g) => g.reduce((s, r) => s + r.reduce((a, b) => a + b, 0), 0);
+const fmt = (v) => (v === -1 ? "−1" : String(v));
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function fill(g, r0, r1, c0, c1) { for (let r = r0; r < r1; r++) for (let c = c0; c < c1; c++) g[r][c] = 1; }
+function windowOf(g, r, c, K) {
+  const a = K >> 1, w = make(K, K);
+  for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) {
+    const rr = r + i - a, cc = c + j - a;
+    w[i][j] = (rr < 0 || cc < 0 || rr >= g.length || cc >= g[0].length) ? null : g[rr][cc];
+  }
+  return w;
+}
+/* What a pixel outside the image counts as, matching OpenCV:
+   cv2.erode uses 1, cv2.dilate uses 0. For hit-or-miss we use 0 (a black
+   border), like the hitmiss() helper in the notebook. */
+const BORDER = { erode: 1, dilate: 0, hitmiss: 0 };
+
+/* ================= data ================= */
+const PRESETS = {
+  square() { const g = make(10, 10); fill(g, 2, 8, 2, 8); return g; },
+  noise() {
+    const g = make(13, 17);
+    fill(g, 2, 9, 2, 8); fill(g, 3, 10, 10, 15);
+    g[5][4] = 0; g[7][5] = 0; g[6][12] = 0;
+    [[0, 12], [0, 16], [12, 1], [12, 8], [12, 16]].forEach(([r, c]) => (g[r][c] = 1));
+    return g;
+  },
+  two() { const g = make(9, 10); fill(g, 1, 5, 1, 5); fill(g, 5, 8, 5, 9); return g; },
+  lshape() { const g = make(11, 12); fill(g, 1, 10, 1, 5); fill(g, 6, 10, 1, 11); return g; },
+  line() { const g = make(11, 13); fill(g, 5, 6, 3, 10); g[9][11] = 1; return g; },
+  cross() { const g = make(11, 11); fill(g, 4, 7, 1, 10); fill(g, 1, 10, 4, 7); return g; },
+  tiny() { const g = make(6, 6); fill(g, 1, 5, 1, 4); g[2][2] = 0; g[0][5] = 1; return g; },
+};
+
+const B1 = [[-1, -1, -1], [0, 1, 0], [1, 1, 1]];
+const B2 = [[0, -1, -1], [1, 1, -1], [0, 1, 0]];
+const STD_THIN = [];
+{ let a = B1, b = B2; for (let i = 0; i < 4; i++) { STD_THIN.push(a, b); a = rot90(a); b = rot90(b); } }
+const STD_THICK = STD_THIN.map(neg);
+
+const sq = (K, v) => make(K, K, v);
+function disk(K) { const a = K >> 1; return make(K, K).map((row, i) => row.map((_, j) => ((i - a) ** 2 + (j - a) ** 2 <= a * a + 0.5 ? 1 : 0))); }
+const KPRESETS_SE = {
+  "Square 3 × 3": () => sq(3, 1),
+  "Cross 3 × 3": () => [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
+  "Horizontal line 3 × 3": () => [[0, 0, 0], [1, 1, 1], [0, 0, 0]],
+  "Square 5 × 5": () => sq(5, 1),
+  "Disk 5 × 5": () => disk(5),
+};
+const KPRESETS_HM = {
+  "Top-left corner": () => [[-1, -1, -1], [-1, 1, 1], [-1, 1, 1]],
+  "Isolated pixel": () => [[-1, -1, -1], [-1, 1, -1], [-1, -1, -1]],
+  "Line end (pointing right)": () => [[-1, -1, -1], [1, 1, -1], [-1, -1, -1]],
+  "Thinning B1": () => clone(B1),
+  "Thinning B2": () => clone(B2),
+};
+
+const OPS = {
+  erode:    { label: "Erosion",     f: "A ⊖ B",             hm: false, rule: "The output pixel is white only if every kernel cell (1) lands on a white pixel. Objects shrink and small white noise disappears." },
+  dilate:   { label: "Dilation",    f: "A ⊕ B",             hm: false, rule: "The output pixel is white if at least one kernel cell (1) lands on a white pixel. Objects grow and small black holes fill in." },
+  open:     { label: "Opening",     f: "(A ⊖ B) ⊕ B",       hm: false, rule: "Two parts: erosion of the input, then dilation of that result. Small white noise is removed and objects keep roughly their size." },
+  close:    { label: "Closing",     f: "(A ⊕ B) ⊖ B",       hm: false, rule: "Two parts: dilation of the input, then erosion of that result. Small black holes are filled and objects keep roughly their size." },
+  gradient: { label: "Gradient",    f: "(A ⊕ B) − (A ⊖ B)", hm: false, rule: "Three parts: dilation of the input, erosion of the input, then subtract them pixel by pixel. What is left is the object’s outline." },
+  hitmiss:  { label: "Hit-or-miss", f: "A ⊛ B",             hm: true,  rule: "The output pixel is white only if the window matches the kernel exactly: 1 must be white, −1 must be black, 0 means don’t care." },
+  thin:     { label: "Thinning",    f: "A − (A ⊛ B)",       hm: true,  rule: "For each kernel: find matches with hit-or-miss, then remove them from the image. Go through all kernels, and repeat rounds until nothing changes." },
+  thick:    { label: "Thickening",  f: "A ∪ (A ⊛ B)",       hm: true,  rule: "For each kernel: find matches with hit-or-miss, then add them to the image. Go through all kernels for a chosen number of rounds." },
+};
+const OPNAME = { erode: "Erosion", dilate: "Dilation", hitmiss: "Hit-or-miss" };
+
+const EXAMPLES = {
+  erode:    () => ({ g: PRESETS.noise(),  k: sq(3, 1) }),
+  dilate:   () => ({ g: PRESETS.noise(),  k: sq(3, 1) }),
+  open:     () => ({ g: PRESETS.noise(),  k: sq(3, 1) }),
+  close:    () => ({ g: PRESETS.noise(),  k: sq(3, 1) }),
+  gradient: () => ({ g: PRESETS.cross(),  k: sq(3, 1) }),
+  hitmiss:  () => ({ g: PRESETS.two(),    k: KPRESETS_HM["Top-left corner"]() }),
+  thin:     () => ({ g: PRESETS.lshape(), k: clone(B1), set: "standard" }),
+  thick:    () => ({ g: PRESETS.line(),   k: clone(B1), set: "standard", rounds: 2 }),
+};
+
+/* ================= state ================= */
+const S = {
+  grid: PRESETS.noise(), kernel: sq(3, 1), op: "erode",
+  kset: "standard", rounds: 2, level: "kernel",
+  skip: false, vals: true, practice: false,
+  img: null,
+  groups: [], steps: [], cur: 0, playing: false, timer: null, error: "",
+  answers: new Map(),
+};
+const isIter = () => S.op === "thin" || S.op === "thick";
+
+/* ================= the math ================= */
+function pixelRule(op, w, k) {
+  const K = k.length; let any1 = 0, all1 = 1, match = 1;
+  for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) {
+    const kv = k[i][j]; let wv = w[i][j];
+    if (wv === null) wv = BORDER[op];
+    if (kv === 1) { if (wv) any1 = 1; else { all1 = 0; match = 0; } }
+    if (kv === -1 && wv) match = 0;
+  }
+  if (op === "erode") return all1;
+  if (op === "dilate") return any1;
+  return match;
+}
+function runPixel(op, input, k) {
+  const R = input.length, C = input[0].length, out = make(R, C);
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) out[r][c] = pixelRule(op, windowOf(input, r, c, k.length), k);
+  return out;
+}
+const combineFn = (fn, a, b) => (fn === "sub" ? Math.max(0, a - b) : (a | b));
+function runCombine(fn, A, B) { return A.map((row, r) => row.map((v, c) => combineFn(fn, v, B[r][c]))); }
+
+/* ================= building the plan =================
+   A "group" is one set of panels plus the parts (stages) that fill them.
+   Erosion, opening, gradient... have one group. Thinning and thickening
+   have one group per kernel application, plus a final summary group. */
+function kernelSet() {
+  if (S.kset === "standard") return S.op === "thin" ? STD_THIN : STD_THICK;
+  const out = [S.kernel]; for (let i = 0; i < 3; i++) out.push(rot90(out[out.length - 1]));
+  return out;
+}
+function validate() {
+  const flat = S.kernel.flat();
+  if (!OPS[S.op].hm && !flat.includes(1)) return "The kernel has no cells set to 1, so there is nothing to compare. Click kernel cells to set them to 1.";
+  if (S.op === "hitmiss" && !flat.some((v) => v !== 0)) return "The kernel is all 0 (don’t care), so every pixel would match. Set some cells to 1 or −1.";
+  if (isIter() && S.kset === "custom" && !flat.some((v) => v !== 0)) return "Your kernel is all 0 (don’t care). Set some cells to 1 or −1, or use the standard set.";
+  return "";
+}
+const px = (op, from, to, k) => ({ kind: "pixel", op, from, to, k });
+const cb = (fn, a, b, to) => ({ kind: "combine", fn, a, b, to });
+
+function planPlain() {
+  const k = S.kernel;
+  const P = (title, f) => ({ title, f });
+  const T = {
+    erode:    [[P("Input", "A"), P("Output: erosion", "A ⊖ B")], [px("erode", 0, 1, k)]],
+    dilate:   [[P("Input", "A"), P("Output: dilation", "A ⊕ B")], [px("dilate", 0, 1, k)]],
+    hitmiss:  [[P("Input", "A"), P("Output: hit-or-miss", "A ⊛ B")], [px("hitmiss", 0, 1, k)]],
+    open:     [[P("Input", "A"), P("Part 1: erosion", "A ⊖ B"), P("Part 2: dilation = opening", "(A ⊖ B) ⊕ B")], [px("erode", 0, 1, k), px("dilate", 1, 2, k)]],
+    close:    [[P("Input", "A"), P("Part 1: dilation", "A ⊕ B"), P("Part 2: erosion = closing", "(A ⊕ B) ⊖ B")], [px("dilate", 0, 1, k), px("erode", 1, 2, k)]],
+    gradient: [[P("Input", "A"), P("Part 1: dilation", "A ⊕ B"), P("Part 2: erosion", "A ⊖ B"), P("Part 3: dilation − erosion", "(A ⊕ B) − (A ⊖ B)")],
+               [px("dilate", 0, 1, k), px("erode", 0, 2, k), cb("sub", 1, 2, 3)]],
+  }[S.op];
+  const [panels, stages] = T;
+  panels[0].grid = S.grid;
+  stages.forEach((st) => {
+    panels[st.to].grid = st.kind === "pixel" ? runPixel(st.op, panels[st.from].grid, st.k) : runCombine(st.fn, panels[st.a].grid, panels[st.b].grid);
+  });
+  return [{ title: OPS[S.op].label, panels, stages, final: panels[panels.length - 1].grid }];
+}
+
+function planIter() {
+  const thin = S.op === "thin", set = kernelSet(), groups = [];
+  let A = clone(S.grid), round = 0, finished = false;
+  const maxRounds = thin ? 60 : S.rounds;
+  while (round < maxRounds) {
+    round++;
+    const startOfRound = A;
+    set.forEach((kk, ki) => {
+      const HM = runPixel("hitmiss", A, kk);
+      const Rz = runCombine(thin ? "sub" : "union", A, HM);
+      let n = 0; A.forEach((row, r) => row.forEach((v, c) => { if (v !== Rz[r][c]) n++; }));
+      const name = `B${ki + 1}`;
+      groups.push({
+        title: `Round ${round}, kernel ${ki + 1} of ${set.length}`, round, ki, kernel: kk, n, iter: true,
+        panels: [
+          { title: "Current image", f: "A", grid: A },
+          { title: "Part 1: hit-or-miss", f: `A ⊛ ${name}`, grid: HM },
+          { title: thin ? "Part 2: remove the matches" : "Part 2: add the matches", f: thin ? `A − (A ⊛ ${name})` : `A ∪ (A ⊛ ${name})`, grid: Rz },
+        ],
+        stages: [px("hitmiss", 0, 1, kk), cb(thin ? "sub" : "union", 0, 1, 2)],
+      });
+      A = Rz;
+    });
+    if (thin && JSON.stringify(startOfRound) === JSON.stringify(A)) { finished = true; break; }
+  }
+  groups.push({
+    title: "Summary", summary: true, rounds: round, finished,
+    panels: [{ title: "Input", f: "A", grid: S.grid }, { title: `Output: ${OPS[S.op].label.toLowerCase()}`, f: OPS[S.op].f, grid: A }],
+    stages: [], final: A,
+  });
+  return groups;
+}
+
+function isEmptyStep(st, G, r, c) {
+  if (st.kind === "pixel") {
+    const src = G.panels[st.from].grid, w = windowOf(src, r, c, st.k.length);
+    for (let i = 0; i < st.k.length; i++) for (let j = 0; j < st.k.length; j++) {
+      if (st.k[i][j] === 0) continue;
+      const v = w[i][j] === null ? BORDER[st.op] : w[i][j];
+      if (v) return false;
+    }
+    return G.panels[st.to].grid[r][c] === 0;
+  }
+  return !G.panels[st.a].grid[r][c] && !G.panels[st.b].grid[r][c];
+}
+
+function build() {
+  stop();
+  S.error = validate();
+  S.groups = []; S.steps = []; S.cur = 0; S.answers = new Map();
+  if (S.error) { renderAll(); return; }
+  S.groups = isIter() ? planIter() : planPlain();
+  const R = S.grid.length, C = S.grid[0].length;
+  const steps = S.steps;
+  steps.push({ gi: 0, type: "intro" });
+  S.groups.forEach((G, gi) => {
+    if (G.summary) return;
+    if (G.iter && S.skip && G.n === 0) return;
+    if (G.iter && S.level === "kernel") {
+      steps.push({ gi, si: 0, type: "whole" }, { gi, si: 1, type: "whole" });
+      return;
+    }
+    G.stages.forEach((st, si) => {
+      steps.push({ gi, si, type: "start" });
+      for (let idx = 0; idx < R * C; idx++) {
+        const r = Math.floor(idx / C), c = idx % C;
+        if (S.skip && isEmptyStep(st, G, r, c)) continue;
+        steps.push({ gi, si, type: "pixel", idx, r, c });
+      }
+      steps.push({ gi, si, type: "done" });
+    });
+  });
+  steps.push({ gi: S.groups.length - 1, type: "summary" });
+  renderAll();
+}
+
+/* ================= op picker & rule ================= */
+function renderOps() {
+  const nav = $("#ops"); nav.innerHTML = "";
+  Object.entries(OPS).forEach(([key, o]) => {
+    const b = document.createElement("button");
+    b.textContent = o.label; b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", key === S.op ? "true" : "false");
+    b.onclick = () => setOp(key);
+    nav.appendChild(b);
+  });
+  $("#rule").innerHTML = `<span class="f">${OPS[S.op].f}</span>${OPS[S.op].rule}`;
+}
+function setOp(key) {
+  const wasHM = OPS[S.op].hm, isHM = OPS[key].hm;
+  S.op = key;
+  if (wasHM && !isHM) {
+    S.kernel = S.kernel.map((r) => r.map((v) => (v === 1 ? 1 : 0)));
+    if (!S.kernel.flat().includes(1)) S.kernel = sq(3, 1);
+  } else if (!wasHM && isHM && key === "hitmiss") {
+    S.kernel = KPRESETS_HM["Top-left corner"]();
+  }
+  renderOps(); renderKernel(); build();
+}
+
+/* ================= input editor ================= */
+let painting = null;
+function renderEditor() {
+  const g = S.grid, R = g.length, C = g[0].length;
+  const host = $("#editor");
+  const w = host.closest(".block").clientWidth - 34;
+  const cs = Math.max(9, Math.min(30, Math.floor((w - C) / C)));
+  host.innerHTML = "";
+  const pg = document.createElement("div");
+  pg.className = "pgrid"; pg.style.setProperty("--cell", cs + "px");
+  pg.style.gridTemplateColumns = `repeat(${C}, ${cs}px)`;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    const d = document.createElement("div");
+    d.className = "cell " + (g[r][c] ? "on" : "off");
+    d.dataset.r = r; d.dataset.c = c;
+    pg.appendChild(d);
+  }
+  host.appendChild(pg);
+  $("#rows").value = R; $("#cols").value = C;
+  const paintAt = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    if (!el || !el.dataset || el.dataset.r === undefined || !pg.contains(el)) return;
+    const r = +el.dataset.r, c = +el.dataset.c;
+    if (S.grid[r][c] !== painting) { S.grid[r][c] = painting; el.className = "cell " + (painting ? "on" : "off"); }
+  };
+  pg.addEventListener("pointerdown", (e) => {
+    const el = e.target; if (el.dataset.r === undefined) return;
+    e.preventDefault();
+    painting = S.grid[+el.dataset.r][+el.dataset.c] ? 0 : 1;
+    S.img = null; $("#imgopts").hidden = true;
+    paintAt(e.clientX, e.clientY);
+    pg.setPointerCapture(e.pointerId);
+  });
+  pg.addEventListener("pointermove", (e) => { if (painting !== null) paintAt(e.clientX, e.clientY); });
+  const end = () => { if (painting !== null) { painting = null; build(); } };
+  pg.addEventListener("pointerup", end);
+  pg.addEventListener("pointercancel", end);
+}
+function setGrid(g) { S.grid = g; renderEditor(); build(); }
+function resizeGrid(R, C) {
+  R = Math.max(3, Math.min(30, R | 0)); C = Math.max(3, Math.min(30, C | 0));
+  const g = make(R, C);
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) g[r][c] = at(S.grid, r, c);
+  setGrid(g);
+}
+function sampleImage() {
+  const size = +$("#imgsize").value, th = +$("#thresh").value, inv = $("#imginv").checked;
+  const iw = S.img.naturalWidth, ih = S.img.naturalHeight;
+  let C, R;
+  if (iw >= ih) { C = size; R = Math.max(3, Math.round(size * ih / iw)); } else { R = size; C = Math.max(3, Math.round(size * iw / ih)); }
+  R = Math.min(R, 30); C = Math.min(C, 30);
+  const cv = document.createElement("canvas"); cv.width = C; cv.height = R;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, C, R);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(S.img, 0, 0, C, R);
+  const d = ctx.getImageData(0, 0, C, R).data, g = make(R, C);
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    const p = (r * C + c) * 4, gray = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+    let v = gray > th ? 1 : 0; if (inv) v = 1 - v; g[r][c] = v;
+  }
+  return g;
+}
+function loadFile(file) {
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      S.img = im; $("#imginv").checked = false;
+      let g = sampleImage();
+      if (count1(g) > g.length * g[0].length / 2) { $("#imginv").checked = true; g = sampleImage(); }
+      $("#imgopts").hidden = false;
+      setGrid(g);
+    };
+    im.onerror = () => alert("This file could not be read as an image. Try a PNG or JPG.");
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+/* ================= kernel editor ================= */
+function kernelCellClass(v) { return v === 1 ? "k1" : v === -1 ? "km" : "k0"; }
+function kgrid(k, onClick) {
+  const K = k.length, el = document.createElement("div");
+  el.className = "kgrid"; el.style.gridTemplateColumns = `repeat(${K}, auto)`;
+  k.forEach((row, i) => row.forEach((v, j) => {
+    const d = document.createElement(onClick ? "button" : "div");
+    d.className = "kcell " + kernelCellClass(v) + (i === K >> 1 && j === K >> 1 ? " center" : "");
+    d.textContent = fmt(v);
+    if (onClick) { d.type = "button"; d.setAttribute("aria-label", `Kernel cell row ${i + 1}, column ${j + 1}: ${fmt(v)}`); d.onclick = () => onClick(i, j); }
+    el.appendChild(d);
+  }));
+  return el;
+}
+function renderKernel() {
+  const op = S.op, hm = OPS[op].hm, iter = isIter();
+  $("#kset").hidden = !iter;
+  $("#roundsRow").hidden = op !== "thick";
+  $("#levelRow").hidden = !iter;
+  $("#kcustom").hidden = iter && S.kset === "standard";
+  document.querySelectorAll('input[name="kset"]').forEach((r) => (r.checked = r.value === S.kset));
+  $("#khint").textContent = !hm
+    ? "Click a cell to switch it between 1 (part of the kernel) and 0 (not used). The yellow cell is the center."
+    : iter && S.kset === "standard"
+      ? (op === "thin" ? "Thinning uses 8 hit-or-miss kernels: 2 shapes, each rotated 4 times." : "Thickening uses the thinning kernels with 1 and −1 swapped, so the center must be background.")
+      : "Click a cell to cycle 1 (must be white), −1 (must be black), 0 (don’t care). The yellow cell is the center.";
+  if (iter) {
+    const th = $("#kthumbs"); th.innerHTML = "";
+    kernelSet().forEach((k, i) => { const e = kgrid(k); e.dataset.i = i; e.title = `B${i + 1}`; th.appendChild(e); });
+  }
+  const ed = kgrid(S.kernel, (i, j) => {
+    const v = S.kernel[i][j];
+    S.kernel[i][j] = hm ? (v === 1 ? -1 : v === -1 ? 0 : 1) : (v === 1 ? 0 : 1);
+    renderKernel(); build();
+  });
+  ed.id = "keditor"; ed.style.marginTop = "6px";
+  $("#keditor").replaceWith(ed);
+  $("#ksize").value = String(S.kernel.length);
+  const presets = hm ? KPRESETS_HM : KPRESETS_SE;
+  $("#kpreset").innerHTML = `<option value="">Sample kernel…</option>` + Object.keys(presets).map((n) => `<option>${n}</option>`).join("");
+}
+
+/* ================= panels ================= */
+let PN = [], panelKey = "";
+function pixelStagesFrom(G, p) { return G.stages.filter((s) => s.kind === "pixel" && s.from === p); }
+function writerOf(G, p) { return G.stages.findIndex((s) => s.to === p); }
+
+function ensurePanels(G) {
+  const K = Math.max(...G.stages.filter((s) => s.kind === "pixel").map((s) => s.k.length), 1);
+  const a = K >> 1;
+  const rings = G.panels.map((_, p) => (pixelStagesFrom(G, p).length ? a : 0));
+  const host = $("#panels");
+  const key = `${G.panels.length}|${rings.join(",")}|${host.clientWidth}|${S.grid.length}x${S.grid[0].length}`;
+  if (key === panelKey) return;
+  panelKey = key; host.innerHTML = ""; PN = [];
+  const R = S.grid.length, C = S.grid[0].length, n = G.panels.length;
+  const avail = host.clientWidth || 600, maxCols = C + 2 * Math.max(...rings);
+  let perRow = n, cs = 0;
+  for (; perRow >= 1; perRow--) {
+    cs = Math.floor((avail - 22 * (perRow - 1)) / perRow / maxCols) - 1;
+    if (cs >= 12 || perRow === 1) break;
+  }
+  cs = Math.max(9, Math.min(34, cs));
+  G.panels.forEach((_, j) => {
+    const ring = rings[j];
+    const fig = document.createElement("figure"); fig.className = "panel";
+    const cap = document.createElement("figcaption"); fig.appendChild(cap);
+    const wrap = document.createElement("div"); wrap.className = "gwrap";
+    const inner = document.createElement("div"); inner.className = "inner";
+    const pg = document.createElement("div"); pg.className = "pgrid";
+    pg.style.setProperty("--cell", cs + "px");
+    pg.style.gridTemplateColumns = `repeat(${C + 2 * ring}, ${cs}px)`;
+    const cells = make(R, C, null), pads = [];
+    for (let r = -ring; r < R + ring; r++) for (let c = -ring; c < C + ring; c++) {
+      const d = document.createElement("div");
+      if (r < 0 || c < 0 || r >= R || c >= C) { d.className = "cell pad"; pads.push(d); }
+      else { d.className = "cell"; cells[r][c] = d; }
+      pg.appendChild(d);
+    }
+    inner.appendChild(pg);
+    const win = document.createElement("div"); win.className = "win"; win.hidden = true;
+    const cur = document.createElement("div"); cur.className = "cur"; cur.hidden = true;
+    cur.style.width = cur.style.height = (cs + 6) + "px";
+    inner.appendChild(win); inner.appendChild(cur);
+    wrap.appendChild(inner); fig.appendChild(wrap); host.appendChild(fig);
+    PN.push({ fig, cap, pg, cells, pads, ring, cs, win, cur, winKey: "" });
+  });
+}
+function setWin(p, k) {
+  const key = JSON.stringify(k);
+  if (p.winKey === key) return;
+  p.winKey = key;
+  const K = k.length;
+  p.win.style.width = p.win.style.height = (K * p.cs + (K - 1) + 6) + "px";
+  p.win.style.gridTemplateColumns = `repeat(${K}, ${p.cs}px)`;
+  p.win.innerHTML = "";
+  k.forEach((row) => row.forEach((v) => { const b = document.createElement("b"); if (v === 1) b.className = "k1"; else if (v === -1) b.className = "km"; p.win.appendChild(b); }));
+}
+function place(el, r, c, p) {
+  el.style.left = ((c + p.ring - (el.classList.contains("win") ? p.ring : 0)) * (p.cs + 1)) + "px";
+  el.style.top = ((r + p.ring - (el.classList.contains("win") ? p.ring : 0)) * (p.cs + 1)) + "px";
+}
+
+/* which pixels of panel p are visible at this step */
+function knownFn(G, p, st, hideCurrent) {
+  const ALL = () => true, NONE = () => false;
+  if (st.type === "summary") return ALL;
+  const w = writerOf(G, p);
+  if (w === -1) return ALL;
+  if (st.type === "intro") return NONE;
+  if (w < st.si) return ALL;
+  if (w > st.si) return NONE;
+  if (st.type === "start") return NONE;
+  if (st.type === "done" || st.type === "whole") return ALL;
+  const C = S.grid[0].length;
+  return (r, c) => { const i = r * C + c; return i < st.idx || (i === st.idx && !hideCurrent); };
+}
+
+function paintPanel(p, g, known, marks, qAt) {
+  const R = g.length, C = g[0].length, showV = S.vals && p.cs >= 16;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    const d = p.cells[r][c], kn = known(r, c);
+    let cls = "cell ";
+    let t = "";
+    if (qAt && qAt[0] === r && qAt[1] === c) { cls += "q"; t = "?"; }
+    else { cls += kn ? (g[r][c] ? "on" : "off") : "unk"; t = showV && kn ? String(g[r][c]) : ""; }
+    const m = kn && marks ? marks(r, c) : ""; if (m) cls += " " + m;
+    if (d.className !== cls) d.className = cls;
+    if (d.textContent !== t) d.textContent = t;
+  }
+}
+function paintPads(p, v) {
+  const cls = v === 1 ? "cell pad p1" : v === 0 ? "cell pad p0" : "cell pad";
+  const t = v === null || !(S.vals && p.cs >= 16) ? "" : String(v);
+  p.pads.forEach((d) => { if (d.className !== cls) d.className = cls; if (d.textContent !== t) d.textContent = t; });
+}
+
+/* ================= render one step ================= */
+const isQuiz = (st) => S.practice && st && st.type === "pixel";
+const answered = (i) => S.answers.has(i);
+
+function renderStep() {
+  const st = S.steps[S.cur];
+  $("#count").textContent = S.steps.length ? `Step ${S.cur + 1} of ${S.steps.length}` : "";
+  $("#scrub").max = Math.max(0, S.steps.length - 1); $("#scrub").value = S.cur;
+  renderScore();
+  if (!st) return;
+  const G = S.groups[st.gi];
+  ensurePanels(G);
+  document.documentElement.style.setProperty("--slide", Math.min(140, Math.round(stepDelay() * 0.6)) + "ms");
+  const stage = st.si !== undefined ? G.stages[st.si] : null;
+  const hideCur = isQuiz(st) && !answered(S.cur);
+
+  // group header
+  const gb = $("#groupbar");
+  if (G.iter) gb.innerHTML = `<strong>${G.title}</strong><span>${G.n ? plural(G.n, "pixel", "pixels") + (S.op === "thin" ? " removed" : " added") : "no change"}</span>`;
+  else if (G.summary) gb.innerHTML = `<strong>Summary</strong><span>input compared with the final output</span>`;
+  else gb.innerHTML = `<strong>${G.title}</strong><span>${G.stages.length > 1 ? plural(G.stages.length, "part", "parts") : "1 part"}</span>`;
+  gb.hidden = false;
+
+  const involved = new Set();
+  if (stage) { if (stage.kind === "pixel") involved.add(stage.from).add(stage.to); else involved.add(stage.a).add(stage.b).add(stage.to); }
+
+  PN.forEach((p, j) => {
+    const P = G.panels[j];
+    p.cap.innerHTML = `${P.title} <span class="f">${P.f}</span>`;
+    p.fig.classList.toggle("active", involved.has(j));
+    p.fig.classList.toggle("dim", !!stage && !involved.has(j) && st.type !== "summary");
+    const known = knownFn(G, j, st, hideCur);
+    let marks = null;
+    if (st.type === "summary" && j === G.panels.length - 1) {
+      const I = G.panels[0].grid;
+      marks = (r, c) => (I[r][c] && !P.grid[r][c] ? "lost" : !I[r][c] && P.grid[r][c] ? "gained" : "");
+    } else if (G.iter && j === 0 && (st.si === 1 || (st.si === 0 && (st.type === "done" || st.type === "whole")))) {
+      const Rz = G.panels[2].grid;
+      marks = (r, c) => (P.grid[r][c] !== Rz[r][c] ? (S.op === "thin" ? "rm" : "add") : "");
+    } else if (G.iter && j === 2) {
+      const A = G.panels[0].grid;
+      marks = (r, c) => (P.grid[r][c] !== A[r][c] ? "chg" : "");
+    }
+    const qAt = hideCur && stage && j === stage.to ? [st.r, st.c] : null;
+    paintPanel(p, P.grid, known, marks, qAt);
+    // outside-the-image cells: show the value this part uses
+    if (p.ring) paintPads(p, stage && stage.kind === "pixel" && stage.from === j && st.type !== "done" ? BORDER[stage.op] : null);
+    // overlays
+    p.win.hidden = true; p.cur.hidden = true;
+    if (st.type === "pixel" && stage) {
+      if (stage.kind === "pixel") {
+        if (j === stage.from) { setWin(p, stage.k); p.win.hidden = false; place(p.win, st.r, st.c, p); }
+        if (j === stage.to) { p.cur.hidden = false; place(p.cur, st.r, st.c, p); }
+      } else if (involved.has(j)) { p.cur.hidden = false; place(p.cur, st.r, st.c, p); }
+    }
+  });
+  document.querySelectorAll("#kthumbs .kgrid").forEach((e) => e.classList.toggle("now", !!G.iter && +e.dataset.i === G.ki));
+  renderLegend(G, st, stage);
+  renderDetail(st, G, stage);
+  markLog(); markOverview(st.gi);
+}
+
+function renderLegend(G, st, stage) {
+  const items = [
+    '<i class="sw" style="background:var(--px-on)"></i>1, object',
+    '<i class="sw" style="background:var(--px-off)"></i>0, background',
+    '<i class="sw" style="background:repeating-linear-gradient(45deg,var(--unk-a) 0 3px,var(--unk-b) 3px 6px)"></i>not computed yet',
+    '<i class="sw" style="border:2px solid var(--window)"></i>kernel window and current pixel',
+  ];
+  if (stage && stage.kind === "pixel") items.push(`<i class="sw" style="background:var(--paper);border-style:dashed"></i>dashed cells are outside the image and count as ${BORDER[stage.op]} in this part`);
+  if (G.iter) items.push(`<i class="sw" style="background:var(${S.op === "thin" ? "--remove" : "--add"})"></i>${S.op === "thin" ? "will be removed" : "will be added"}`);
+  if (st.type === "summary") items.push('<i class="sw" style="box-shadow:inset 0 0 0 2px var(--remove)"></i>removed compared with the input', '<i class="sw" style="box-shadow:inset 0 0 0 2px var(--add)"></i>added compared with the input');
+  if (S.practice) items.push('<i class="sw" style="background:var(--window)"></i>your turn: predict this pixel');
+  $("#legend").innerHTML = items.map((i) => `<span>${i}</span>`).join("");
+}
+
+/* ================= step explanation ================= */
+function miniGrid(vals, clsFn, textFn) {
+  const K = vals.length, Cc = vals[0].length;
+  return `<div class="mini" style="grid-template-columns:repeat(${Cc},auto)">` +
+    vals.map((row, i) => row.map((v, j) => `<div class="${clsFn(v, i, j)}">${textFn(v, i, j)}</div>`).join("")).join("") + "</div>";
+}
+const kernelMini = (k) => miniGrid(k, (v) => (v === 1 ? "on" : v === -1 ? "off" : "k0"), (v) => fmt(v));
+const pName = (G, i) => G.panels[i].title.replace(/^Part \d+: /, "").replace(/ = .*/, "");
+function stageDesc(G, st) {
+  if (st.kind === "pixel") return `${OPNAME[st.op]} of “${pName(G, st.from)}”`;
+  return st.fn === "sub" ? `Subtract pixel by pixel: “${pName(G, st.a)}” − “${pName(G, st.b)}”` : `Combine pixel by pixel: “${pName(G, st.a)}” ∪ “${pName(G, st.b)}”`;
+}
+function borderNote(op) {
+  if (op === "erode") return "Pixels outside the image count as 1 (white), like <code>cv2.erode</code>, so objects touching the edge do not shrink from that side.";
+  if (op === "dilate") return "Pixels outside the image count as 0 (black), like <code>cv2.dilate</code>.";
+  return "Pixels outside the image count as 0 (black), the same as the <code>hitmiss()</code> helper in the notebook.";
+}
+function combineRule(fn) {
+  if (S.op === "gradient") return "Take the dilation pixel minus the erosion pixel. 1 − 0 = 1 means the pixel is on the edge. 1 − 1 = 0 and 0 − 0 = 0 mean it is inside or outside the object.";
+  if (fn === "sub") return "Keep a pixel only if it is white in A and was not matched: 1 − 0 = 1 (kept), 1 − 1 = 0 (removed), 0 stays 0.";
+  return "A pixel is white if it is white in A or it was matched: 0 ∪ 1 = 1 (added), 1 stays 1.";
+}
+function quizHTML() {
+  return `<div class="quiz"><span>What is the output pixel?</span>
+    <button class="btn" data-ans="0">0</button><button class="btn" data-ans="1">1</button>
+    <span class="hint" style="margin:0">or press 0 / 1</span></div>`;
+}
+function feedbackHTML(correct) {
+  const a = S.answers.get(S.cur);
+  if (a === undefined) return "";
+  return a === correct ? `<span class="fb ok">✓ Correct.</span> ` : `<span class="fb no">✗ Not quite: you said ${a}, the answer is ${correct}.</span> `;
+}
+
+function renderDetail(st, G, stage) {
+  const el = $("#detail");
+  const nParts = G.stages.length;
+  const partTag = stage ? (nParts > 1 ? `Part ${st.si + 1} of ${nParts}` : "") : "";
+
+  if (st.type === "intro") {
+    if (isIter()) {
+      const set = kernelSet(), sum = S.groups[S.groups.length - 1];
+      el.innerHTML = `<div class="dhead"><strong>How ${OPS[S.op].label.toLowerCase()} works</strong></div>
+        <p class="verdict" style="max-width:none">The image is processed with ${set.length} kernels, one after another. Every kernel has two parts:</p>
+        <ol class="plan">
+          <li>Hit-or-miss with the kernel finds the matching pixels. <span class="f">A ⊛ Bk</span></li>
+          <li>${S.op === "thin" ? "Remove" : "Add"} the matches, and the result becomes the new A. <span class="f">${S.op === "thin" ? "A − (A ⊛ Bk)" : "A ∪ (A ⊛ Bk)"}</span></li>
+        </ol>
+        <p class="verdict" style="max-width:none;margin-top:8px">${S.op === "thin" ? `Rounds repeat until a full round changes nothing. Here that takes ${sum.rounds} rounds.` : `This runs ${plural(sum.rounds, "round", "rounds")}.`} Every intermediate image is in “Whole process at a glance” below. Press <b>Play</b> or <b>→</b> to start.</p>`;
+    } else {
+      el.innerHTML = `<div class="dhead"><strong>How ${OPS[S.op].label.toLowerCase()} works</strong><span>${OPS[S.op].f}</span></div>
+        <ol class="plan">${G.stages.map((s) => `<li>${stageDesc(G, s)} → “${G.panels[s.to].title}”</li>`).join("")}</ol>
+        <p class="verdict" style="max-width:none;margin-top:8px">${nParts > 1 ? "Each part gets its own panel, so you can follow and check every part separately. The last step shows the parts together." : "The last step compares the input and the output."} Press <b>Play</b> or <b>→</b> to start.</p>`;
+    }
+    return;
+  }
+
+  if (st.type === "summary") {
+    const I = G.panels[0].grid, O = G.final || G.panels[G.panels.length - 1].grid;
+    let lost = 0, gained = 0;
+    I.forEach((row, r) => row.forEach((v, c) => { if (v && !O[r][c]) lost++; if (!v && O[r][c]) gained++; }));
+    let chain;
+    if (isIter()) chain = `<p class="verdict" style="max-width:none">${S.op === "thin" ? (G.finished ? `After ${G.rounds} rounds a full round changed nothing, so the shape is as thin as these kernels can make it.` : `Stopped after ${G.rounds} rounds.`) : `Finished ${plural(G.rounds, "round", "rounds")}.`}</p>`;
+    else chain = `<ol class="plan">${G.stages.map((s) => `<li>${stageDesc(G, s)} → “${G.panels[s.to].title}”: ${plural(count1(G.panels[s.to].grid), "white pixel", "white pixels")}</li>`).join("")}</ol>`;
+    el.innerHTML = `<div class="dhead"><strong>Summary: ${OPS[S.op].label}</strong><span>${OPS[S.op].f}</span></div>
+      ${chain}
+      <p class="verdict" style="max-width:none;margin-top:8px">White pixels: ${count1(I)} in the input, ${count1(O)} in the output. Compared with the input, ${plural(lost, "pixel was", "pixels were")} removed (red outline) and ${plural(gained, "pixel was", "pixels were")} added (green outline).${S.practice ? ` Practice score: ${scoreText()}.` : ""}</p>`;
+    return;
+  }
+
+  if (st.type === "start") {
+    const note = stage.kind === "pixel"
+      ? `The yellow kernel window visits every pixel of “${pName(G, stage.from)}”, row by row, and writes one pixel of “${G.panels[stage.to].title}”. ${borderNote(stage.op)}`
+      : `This part reads the same pixel from both panels and combines them. ${combineRule(stage.fn)}`;
+    el.innerHTML = `<div class="dhead"><strong>${partTag ? partTag + ": " : ""}${stageDesc(G, stage)}</strong>${G.iter ? `<span>${G.title}</span>` : ""}</div>
+      <div class="dbody">${stage.kind === "pixel" ? `<figure>${kernelMini(stage.k)}<figcaption>Kernel</figcaption></figure>` : ""}<p class="verdict">${note}</p></div>`;
+    return;
+  }
+
+  if (st.type === "done") {
+    const out = G.panels[stage.to].grid;
+    const nxt = st.si < nParts - 1 ? ` Next, part ${st.si + 2}: ${stageDesc(G, G.stages[st.si + 1])}.` : "";
+    el.innerHTML = `<div class="dhead"><strong>${partTag ? partTag + " complete" : "Complete"}</strong>${G.iter ? `<span>${G.title}</span>` : ""}</div>
+      <p class="verdict">“${G.panels[stage.to].title}” has ${plural(count1(out), "white pixel", "white pixels")}.${nxt}</p>`;
+    return;
+  }
+
+  if (st.type === "whole") {
+    const HM = G.panels[1].grid, matches = count1(HM);
+    if (st.si === 0) {
+      el.innerHTML = `<div class="dhead"><strong>Part 1 of 2: hit-or-miss with B${G.ki + 1}</strong><span>${G.title}</span></div>
+        <div class="dbody"><figure>${kernelMini(G.kernel)}<figcaption>Kernel B${G.ki + 1}</figcaption></figure>
+        <p class="verdict">${matches ? `${plural(matches, "pixel matches", "pixels match")} this kernel (white in the middle panel, ${S.op === "thin" ? "red" : "green"} in the current image).` : "No pixel matches this kernel."} Rule: 1 must be white, −1 must be black, 0 is ignored. Switch “Show each kernel” to pixel by pixel to see every window.</p></div>`;
+    } else {
+      el.innerHTML = `<div class="dhead"><strong>Part 2 of 2: ${S.op === "thin" ? "remove" : "add"} the matches</strong><span>${G.title}</span></div>
+        <p class="verdict">${combineRule(G.stages[1].fn)} ${G.n ? `${plural(G.n, "pixel", "pixels")} ${S.op === "thin" ? "removed" : "added"} (yellow outline on the right).` : "Nothing changes."} The right panel becomes the current image for the next kernel.</p>`;
+    }
+    return;
+  }
+
+  // pixel step
+  const quiz = isQuiz(st), hidden = quiz && !answered(S.cur);
+  if (stage.kind === "combine") {
+    const a = G.panels[stage.a].grid[st.r][st.c], b = G.panels[stage.b].grid[st.r][st.c], out = combineFn(stage.fn, a, b);
+    const sym = stage.fn === "sub" ? "−" : "∪";
+    const one = (v) => `<div class="mini"><div class="${v ? "on" : "off"}">${v}</div></div>`;
+    el.innerHTML = `<div class="dhead"><strong>Pixel (row ${st.r}, col ${st.c})</strong><span>${partTag}: ${stageDesc(G, stage)}</span></div>
+      <div class="dbody">
+        <figure>${one(a)}<figcaption>${pName(G, stage.a)}</figcaption></figure>
+        <span class="op-sym">${sym}</span>
+        <figure>${one(b)}<figcaption>${pName(G, stage.b)}</figcaption></figure>
+        <span class="op-sym">=</span>
+        <figure><div class="mini"><div class="${hidden ? "k0" : out ? "on" : "off"}">${hidden ? "?" : out}</div></div><figcaption>Output</figcaption></figure>
+        <div class="verdict">${hidden ? quizHTML() : feedbackHTML(out) + `${a} ${sym} ${b} = <span class="res r${out}">${out}</span>. ${combineRule(stage.fn)}`}</div>
+      </div>`;
+    return;
+  }
+  const k = stage.k, src = G.panels[stage.from].grid, w = windowOf(src, st.r, st.c, k.length), out = pixelRule(stage.op, w, k), op = stage.op;
+  const bv = BORDER[op], val = (v) => (v === null ? bv : v);
+  const status = (v, kv) => {
+    v = val(v);
+    if (op === "hitmiss") { if (kv === 0) return "ign"; return (kv === 1 ? v === 1 : v === 0) ? "good" : "bad"; }
+    if (kv !== 1) return "ign";
+    if (op === "erode") return v ? "good" : "bad";
+    return v ? "good" : "";
+  };
+  const wHTML = miniGrid(w,
+    (v, i, j) => `${val(v) ? "on" : "off"}${v === null ? " out" : ""} ${hidden ? (k[i][j] === 0 ? "ign" : "") : status(v, k[i][j])}`,
+    (v) => val(v));
+  let ok = 0, bad = 0;
+  k.forEach((row, i) => row.forEach((kv, j) => { const s = status(w[i][j], kv); if (s === "good") ok++; if (s === "bad") bad++; }));
+  const chip = `<span class="res r${out}">${out}</span>`;
+  let why;
+  if (op === "erode") why = out ? `All ${ok} kernel cells sit on white, so the output is ${chip}.` : `${plural(bad, "kernel cell sits", "kernel cells sit")} on black (red), so the output is ${chip}. Erosion needs all of them white.`;
+  else if (op === "dilate") why = out ? `${plural(ok, "kernel cell hits", "kernel cells hit")} white (green), so the output is ${chip}. One is enough.` : `No kernel cell hits a white pixel, so the output is ${chip}.`;
+  else why = out ? `Every 1 is on white and every −1 is on black: a match, so the output is ${chip}.` : `${plural(bad, "cell does", "cells do")} not match (red), so the output is ${chip}.`;
+  const hintRule = op === "erode" ? "Erosion: 1 only if every kernel cell (1) is on white." : op === "dilate" ? "Dilation: 1 if any kernel cell (1) is on white." : "Hit-or-miss: 1 only if every 1 is on white and every −1 is on black.";
+  el.innerHTML = `<div class="dhead"><strong>Pixel (row ${st.r}, col ${st.c})</strong><span>${partTag ? partTag + ": " : ""}${stageDesc(G, stage)}${G.iter ? `, ${G.title.toLowerCase()}` : ""}</span></div>
+    <div class="dbody">
+      <figure>${wHTML}<figcaption>Window from “${pName(G, stage.from)}”</figcaption></figure>
+      <span class="op-sym">vs</span>
+      <figure>${kernelMini(k)}<figcaption>Kernel</figcaption></figure>
+      <span class="op-sym">→</span>
+      <figure><div class="mini"><div class="${hidden ? "k0" : out ? "on" : "off"}">${hidden ? "?" : out}</div></div><figcaption>Output</figcaption></figure>
+      <div class="verdict">${hidden ? `<span class="hint" style="margin:0">${hintRule}</span>${quizHTML()}` : feedbackHTML(out) + why}</div>
+    </div>`;
+}
+function correctAt(i) {
+  const st = S.steps[i], G = S.groups[st.gi], stage = G.stages[st.si];
+  return G.panels[stage.to].grid[st.r][st.c];
+}
+function answer(v) {
+  const st = S.steps[S.cur];
+  if (!isQuiz(st) || answered(S.cur)) return;
+  S.answers.set(S.cur, v);
+  const li = $("#log").children[S.cur];
+  if (li) li.lastChild.textContent = li.lastChild.textContent.replace("?", String(correctAt(S.cur)));
+  renderStep();
+}
+function scoreText() {
+  let right = 0; S.answers.forEach((v, i) => { if (v === correctAt(i)) right++; });
+  return `${right} of ${S.answers.size} correct`;
+}
+function renderScore() { $("#score").textContent = S.practice && S.answers.size ? `Score: ${scoreText()}` : ""; }
+$("#detail").addEventListener("click", (e) => { const b = e.target.closest("[data-ans]"); if (b) answer(+b.dataset.ans); });
+
+/* ================= whole-process overview ================= */
+function drawThumb(cv, g, prev, cell) {
+  const R = g.length, C = g[0].length;
+  cv.width = C * cell; cv.height = R * cell;
+  const ctx = cv.getContext("2d"), cs = getComputedStyle(document.documentElement);
+  const on = cs.getPropertyValue("--px-on").trim(), off = cs.getPropertyValue("--px-off").trim();
+  const rm = cs.getPropertyValue("--remove").trim(), ad = cs.getPropertyValue("--add").trim();
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    ctx.fillStyle = prev && prev[r][c] && !g[r][c] ? rm : prev && !prev[r][c] && g[r][c] ? ad : g[r][c] ? on : off;
+    ctx.fillRect(c * cell, r * cell, cell, cell);
+  }
+}
+let OV = [];
+function buildOverview() {
+  const box = $("#overviewBox"), host = $("#overview");
+  OV = [];
+  if (!isIter() || S.error) { box.hidden = true; host.innerHTML = ""; return; }
+  box.hidden = false; host.innerHTML = "";
+  const C = S.grid[0].length, cell = Math.max(3, Math.min(6, Math.floor(84 / C)));
+  const byRound = new Map();
+  S.groups.forEach((G, gi) => { if (G.iter) { if (!byRound.has(G.round)) byRound.set(G.round, []); byRound.get(G.round).push(gi); } });
+  const thumb = (label, g, prev, gi) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "othumb";
+    const cv = document.createElement("canvas"); drawThumb(cv, g, prev, cell);
+    b.appendChild(cv); const s = document.createElement("span"); s.textContent = label; b.appendChild(s);
+    b.onclick = () => { stop(); const i = S.steps.findIndex((x) => x.gi >= gi && x.type !== "intro"); go(i === -1 ? S.steps.length - 1 : i); };
+    return b;
+  };
+  byRound.forEach((gis, round) => {
+    const row = document.createElement("div"); row.className = "orow";
+    row.innerHTML = `<b>Round ${round}</b>`;
+    const th = document.createElement("div"); th.className = "othumbs";
+    const first = S.groups[gis[0]];
+    th.appendChild(thumb("start", first.panels[0].grid, null, gis[0]));
+    gis.forEach((gi) => {
+      const G = S.groups[gi];
+      const t = thumb(`B${G.ki + 1}: ${G.n ? (S.op === "thin" ? "−" : "+") + G.n : "none"}`, G.panels[2].grid, G.panels[0].grid, gi);
+      t.dataset.gi = gi; th.appendChild(t); OV.push(t);
+    });
+    row.appendChild(th); host.appendChild(row);
+  });
+}
+function markOverview(gi) { OV.forEach((t) => t.classList.toggle("now", +t.dataset.gi === gi)); }
+
+/* ================= log ================= */
+function buildLog() {
+  const ol = $("#log"); ol.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  S.steps.forEach((st, i) => {
+    const li = document.createElement("li"), G = S.groups[st.gi], stage = st.si !== undefined ? G.stages[st.si] : null;
+    let text, head = false;
+    if (st.type === "intro") { text = `How ${OPS[S.op].label.toLowerCase()} works`; head = true; }
+    else if (st.type === "summary") { text = "Summary"; head = true; }
+    else if (st.type === "start") { text = `${G.iter ? G.title + ", part " : "Part "}${st.si + 1}: ${stageDesc(G, stage)}`; head = true; }
+    else if (st.type === "done") text = `${G.iter ? G.title + ", part " : "Part "}${st.si + 1} complete`;
+    else if (st.type === "whole") { text = st.si === 0 ? `${G.title}: hit-or-miss, ${plural(count1(G.panels[1].grid), "match", "matches")}` : `${G.title}: ${G.n ? (S.op === "thin" ? "removed " : "added ") + G.n : "no change"}`; head = st.si === 0; }
+    else text = `Pixel (${st.r}, ${st.c}) → ${S.practice ? "?" : G.panels[stage.to].grid[st.r][st.c]}`;
+    li.innerHTML = `<span class="n">${i + 1}</span><span>${text}</span>`;
+    if (head) li.classList.add("head");
+    li.onclick = () => { stop(); go(i); };
+    frag.appendChild(li);
+  });
+  ol.appendChild(frag);
+}
+let lastMarked = -1;
+function markLog() {
+  const ol = $("#log"), items = ol.children;
+  if (!items.length) return;
+  if (lastMarked >= 0 && items[lastMarked]) items[lastMarked].classList.remove("now");
+  const li = items[S.cur]; if (!li) return;
+  li.classList.add("now"); lastMarked = S.cur;
+  const top = li.offsetTop - ol.offsetTop, bottom = top + li.offsetHeight;
+  if (top < ol.scrollTop || bottom > ol.scrollTop + ol.clientHeight) ol.scrollTop = top - ol.clientHeight / 2;
+}
+
+/* ================= player ================= */
+function stepDelay() { const v = +$("#speed").value; return Math.round(1500 * Math.pow(0.03, v / 100)); }
+function go(i) { S.cur = Math.max(0, Math.min(S.steps.length - 1, i)); renderStep(); }
+function stop() { S.playing = false; clearTimeout(S.timer); $("#play").textContent = "▶ Play"; }
+function tick() {
+  if (!S.playing) return;
+  if (S.cur >= S.steps.length - 1) { stop(); return; }
+  go(S.cur + 1);
+  if (isQuiz(S.steps[S.cur]) && !answered(S.cur)) { stop(); return; } // wait for the student
+  S.timer = setTimeout(tick, stepDelay());
+}
+function play() {
+  if (!S.steps.length) return;
+  if (S.playing) { stop(); return; }
+  if (S.cur >= S.steps.length - 1) go(0);
+  S.playing = true; $("#play").textContent = "⏸ Pause";
+  S.timer = setTimeout(tick, stepDelay());
+}
+function renderAll() {
+  panelKey = "";
+  if (S.error) {
+    PN = []; $("#panels").innerHTML = ""; $("#legend").innerHTML = ""; $("#log").innerHTML = ""; $("#groupbar").hidden = true;
+    $("#overviewBox").hidden = true;
+    $("#detail").innerHTML = `<p class="err">${S.error}</p>`;
+    $("#count").textContent = ""; return;
+  }
+  buildLog(); buildOverview(); lastMarked = -1; renderStep();
+}
+
+/* ================= wiring ================= */
+$("#rows").onchange = () => resizeGrid(+$("#rows").value, S.grid[0].length);
+$("#cols").onchange = () => resizeGrid(S.grid.length, +$("#cols").value);
+$("#preset").onchange = (e) => { const v = e.target.value; if (v) { S.img = null; $("#imgopts").hidden = true; setGrid(PRESETS[v]()); } e.target.value = ""; };
+$("#clear").onclick = () => setGrid(make(S.grid.length, S.grid[0].length));
+$("#invertGrid").onclick = () => setGrid(S.grid.map((r) => r.map((v) => 1 - v)));
+$("#file").onchange = (e) => { loadFile(e.target.files[0]); e.target.value = ""; };
+$("#imgsize").oninput = () => { $("#imgsizeV").textContent = $("#imgsize").value; if (S.img) setGrid(sampleImage()); };
+$("#thresh").oninput = () => { $("#threshV").textContent = $("#thresh").value; if (S.img) setGrid(sampleImage()); };
+$("#imginv").onchange = () => { if (S.img) setGrid(sampleImage()); };
+$("#example").onclick = () => {
+  const ex = EXAMPLES[S.op]();
+  S.img = null; $("#imgopts").hidden = true;
+  S.kernel = ex.k; if (ex.set) S.kset = ex.set; if (ex.rounds) { S.rounds = ex.rounds; $("#rounds").value = ex.rounds; }
+  renderKernel(); setGrid(ex.g);
+};
+$("#ksize").onchange = (e) => {
+  const K = +e.target.value;
+  S.kernel = OPS[S.op].hm ? (() => { const k = sq(K, 0); k[K >> 1][K >> 1] = 1; return k; })() : sq(K, 1);
+  renderKernel(); build();
+};
+$("#kpreset").onchange = (e) => { const n = e.target.value; if (!n) return; S.kernel = (OPS[S.op].hm ? KPRESETS_HM : KPRESETS_SE)[n](); renderKernel(); build(); };
+document.querySelectorAll('input[name="kset"]').forEach((r) => (r.onchange = () => { S.kset = r.value; renderKernel(); build(); }));
+$("#rounds").onchange = () => { S.rounds = Math.max(1, Math.min(8, +$("#rounds").value || 1)); $("#rounds").value = S.rounds; build(); };
+$("#level").onchange = (e) => {
+  S.level = e.target.value;
+  if (S.level === "pixel" && !S.skip) { S.skip = true; $("#skip").checked = true; } // keeps the step count manageable
+  build();
+};
+$("#skip").onchange = (e) => { S.skip = e.target.checked; build(); };
+$("#vals").onchange = (e) => { S.vals = e.target.checked; renderStep(); };
+$("#practice").onchange = (e) => {
+  S.practice = e.target.checked;
+  if (S.practice && isIter() && S.level === "kernel") { S.level = "pixel"; $("#level").value = "pixel"; S.skip = true; $("#skip").checked = true; }
+  build();
+};
+$("#play").onclick = play;
+$("#first").onclick = () => { stop(); go(0); };
+$("#last").onclick = () => { stop(); go(S.steps.length - 1); };
+$("#prev").onclick = () => { stop(); go(S.cur - 1); };
+$("#next").onclick = () => { stop(); go(S.cur + 1); };
+$("#scrub").oninput = (e) => { stop(); go(+e.target.value); };
+document.addEventListener("keydown", (e) => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (["input", "select", "textarea"].includes(tag) && e.target.type !== "range" && e.target.type !== "checkbox") return;
+  if (e.key === "ArrowRight") { e.preventDefault(); stop(); go(S.cur + 1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); go(S.cur - 1); }
+  else if (e.key === " " && tag !== "button") { e.preventDefault(); play(); }
+  else if (e.key === "0" || e.key === "1") answer(+e.key);
+});
+let rz;
+window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { renderEditor(); if (!S.error) renderStep(); }, 150); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!S.error) { buildOverview(); renderStep(); } });
+
+renderOps(); renderKernel(); renderEditor(); build();
+</script>
+</body>
+</html>
